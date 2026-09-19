@@ -250,8 +250,11 @@ class CustomTTAReporter implements Reporter {
         let videoPath: string | undefined;
         let tracePath: string | undefined;
 
+        // Only collect screenshots, videos, and traces for failed / timed-out tests.
+        const isFailed = status === 'failed' || status === 'timedOut';
+
         for (const attachment of result.attachments) {
-            if (attachment.contentType === 'image/png') {
+            if (attachment.contentType === 'image/png' && isFailed) {
                 const screenshotName = `screenshot_${this.testCounter}_${screenshots.length + 1}.png`;
                 const destPath = path.join('tta-report', 'screenshots', screenshotName);
                 const destDir = path.dirname(destPath);
@@ -273,7 +276,7 @@ class CustomTTAReporter implements Reporter {
                 }
             }
 
-            if (attachment.contentType === 'video/webm' && attachment.path) {
+            if (attachment.contentType === 'video/webm' && attachment.path && isFailed) {
                 const videoName = `video_${this.testCounter}.webm`;
                 const destPath = path.join('tta-report', 'videos', videoName);
                 const destDir = path.dirname(destPath);
@@ -288,7 +291,7 @@ class CustomTTAReporter implements Reporter {
                 }
             }
 
-            if (attachment.name === 'trace' && attachment.path) {
+            if (attachment.name === 'trace' && attachment.path && isFailed) {
                 const traceName = `trace_${this.testCounter}.zip`;
                 const destPath = path.join('tta-report', 'traces', traceName);
                 const destDir = path.dirname(destPath);
