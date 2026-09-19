@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+dist/
+
+# Playwright generated
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/
+
+# Custom TTA reports (generated at runtime)
+tta-report/
+reports/runs/
+
+# Logs (keep the directory via .gitkeep, ignore runtime logs)
+logs/*.log
+
+# Environment variables (secrets)
+.env
+.env.*
+!.env.example
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+*.swp
+*.swo

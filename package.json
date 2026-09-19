@@ -1,0 +1,33 @@
+{
+  "name": "advanceplaywrightfundamentals",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:headed": "playwright test --headed",
+    "test:debug": "playwright test --debug",
+    "test:report": "playwright show-report",
+    "test:chromium": "playwright test --project=chromium",
+    "codegen": "playwright codegen"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@faker-js/faker": "^10.6.0",
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^26.5.1",
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1",
+    "allure-playwright": "^3.12.1",
+    "csv-parse": "^7.0.2",
+    "dotenv": "^17.4.2",
+    "jsonpath-plus": "^10.4.0",
+    "typescript": "^7.0.2",
+    "winston": "^3.19.0",
+    "xlsx": "^0.18.5"
+  }
+}
