@@ -43,6 +43,7 @@ A production-grade, enterprise-ready **Playwright + TypeScript** test automation
 ├── reports/
 │   └── runs/                                  # JSON run execution metadata
 ├── rules/                                     # Custom guidelines and rules
+│   └── ponytail.md                            # Ponytail lazy senior dev ruleset
 ├── src/
 │   ├── ai/
 │   │   ├── agents/
@@ -68,7 +69,9 @@ A production-grade, enterprise-ready **Playwright + TypeScript** test automation
 │   │   ├── ItemDetailPage.ts                  # TTACart product detail Page Object
 │   │   └── LoginPage.ts                       # TTACart login Page Object
 │   ├── testdata/
-│   │   └── booking.data.ts                    # Booking payload generator & test data factories
+│   │   ├── booking.data.ts                    # Booking payload generator & test data factories
+│   │   └── schemas/                           # JSON schemas for contract validation
+│   │       └── create-booking.schema.json
 │   ├── tests/
 │   │   ├── aiTest/                            # AI-powered test specs
 │   │   ├── apisTests/                         # Comprehensive API test suite
@@ -85,10 +88,12 @@ A production-grade, enterprise-ready **Playwright + TypeScript** test automation
 │   │   │   │   ├── booking_crud.e2e.spec.ts   # E2E CRUD with BookingApi fixture
 │   │   │   │   ├── booking-crud-end-to-end.ponytail.spec.ts # End-to-end booking flow
 │   │   │   │   └── booking_negative.spec.ts   # Negative tests (auth 403, 404, invalid payload)
-│   │   │   └── 04_jsonPath_plus/              # Deep JSON querying with JSONPath Plus
-│   │   │       ├── jsonPath-queries.spec.ts   # Real-world query & filter assertions
-│   │   │       ├── jsonpath-cheatsheet.md     # Complete JSONPath syntax cheatsheet
-│   │   │       └── store.json                 # Reference dataset for queries
+│   │   │   ├── 04_jsonPath_plus/              # Deep JSON querying with JSONPath Plus
+│   │   │   │   ├── jsonPath-queries.spec.ts   # Real-world query & filter assertions
+│   │   │   │   ├── jsonpath-cheatsheet.md     # Complete JSONPath syntax cheatsheet
+│   │   │   │   └── store.json                 # Reference dataset for queries
+│   │   │   └── 05_ajv_json_schema/            # JSON Schema validation with Ajv
+│   │   │       └── create-booking-json-schema.spec.ts # Schema contract test
 │   │   ├── e2e/                               # Full E2E UI test journeys
 │   │   │   ├── e2e-checkout.spec.ts           # E2E checkout journey with fixtures
 │   │   │   └── e2e-checkout-steps.spec.ts     # Step-by-step visual E2E checkout
@@ -101,6 +106,7 @@ A production-grade, enterprise-ready **Playwright + TypeScript** test automation
 │       ├── EnvUtil.ts                         # Singleton environment loader & accessor
 │       ├── KBlogger.md                        # Winston logger documentation & usage guide
 │       ├── Logger.ts                          # Winston logger with scoped child loggers
+│       ├── SchemaValidator.ts                 # Runtime JSON Schema validator via Ajv
 │       ├── UtilElementLocator.ts              # Fluent interaction wrapper around Locator
 │       ├── selfHeal.ts                        # Self-healing locator type definitions
 │       └── visualStep.ts                      # Visual step wrapper with screenshot capture
