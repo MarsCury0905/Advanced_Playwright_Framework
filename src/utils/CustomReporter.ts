@@ -17,9 +17,9 @@ import {
 } from '@playwright/test/reporter';
 import * as fs from 'fs';
 import * as path from 'path';
-import { analyzeFailure, type RcaVerdict } from '../ai/agents/rcaAgent';
-import { analyzeFlaky, type BuildSummary, type FlakyResult } from '../ai/agents/flakyAnalyzer';
-import { hasApiKey } from '../ai/config/providers';
+import { analyzeFailure, type RcaVerdict, type FailureCategory } from '../ai/agents/rcaAgent';
+import { analyzeFlaky, type BuildSummary, type FlakyResult, type FlakyTestDetail } from '../ai/agents/flakyAnalyzer';
+import { hasApiKey } from '../ai/LLMClient';
 import type { HealReport } from './selfHeal';
 
 export interface StepData {
@@ -506,23 +506,21 @@ class CustomTTAReporter implements Reporter {
         return this.outputFile;
     }
 
-    // RCA AI agent: analyze each failed test via the LLM gateway and store a verdict.
+    // RCA AI agent: analyze each failed test and store a verdict.
+    // The agent uses createAgent with built-in fallback, so it always produces a result.
     private async runRcaAnalysis(): Promise<void> {
         const failures = this.testResults.filter(
             (t) => t.status === 'failed' || t.status === 'timedOut',
         );
         if (failures.length === 0) return;
-        if (!hasApiKey()) {
-            console.log('🤖 RCA agent: no LLM API key set — skipping AI verdict.');
-            return;
-        }
 
         const cap = 10;
         const toAnalyze = failures.slice(0, cap);
+        const mode = hasApiKey() ? 'AI-powered' : 'heuristic';
         if (failures.length > cap) {
-            console.log(`🤖 RCA agent: analyzing first ${cap} of ${failures.length} failures.`);
+            console.log(`🤖 RCA agent (${mode}): analyzing first ${cap} of ${failures.length} failures.`);
         } else {
-            console.log(`🤖 RCA agent analyzing ${toAnalyze.length} failure(s)...`);
+            console.log(`🤖 RCA agent (${mode}): analyzing ${toAnalyze.length} failure(s)...`);
         }
 
         for (const t of toAnalyze) {
@@ -1020,15 +1018,52 @@ class CustomTTAReporter implements Reporter {
         }).join('')}</div>`;
     }
 
-    // Flaky tab body: build-vs-build counts, highlighted flaky tests, LLM summary.
+    // Flaky tab body: build-vs-build counts, detailed flaky analysis cards, LLM summary.
     private generateFlakyTab(): string {
         if (!this.flakyResult) {
             return `<div class="ai-empty">🔁 Flaky analysis needs two builds. Run the suite again to compare.</div>`;
         }
         const r = this.flakyResult;
-        const flakyList = r.flaky.length
-            ? r.flaky.map((t) => `<div class="flaky-item">🔁 ${this.escapeHtml(t)}</div>`).join('')
-            : `<div class="ai-empty">No flaky tests — statuses were consistent across both builds.</div>`;
+
+        // Detailed flaky cards with pattern, confidence, and remediation
+        let flakyList: string;
+        if (r.flakyDetails && r.flakyDetails.length > 0) {
+            flakyList = r.flakyDetails.map((d: FlakyTestDetail) => {
+                const patternColors: Record<string, string> = {
+                    'timing-sensitivity': '#f59e0b',
+                    'environment-dependency': '#6366f1',
+                    'data-dependency': '#ec4899',
+                    'order-dependency': '#14b8a6',
+                    'resource-leak': '#ef4444',
+                    'race-condition': '#f97316',
+                    'unknown': '#94a3b8',
+                };
+                const color = patternColors[d.pattern] || '#94a3b8';
+                const confClass = d.confidence >= 75 ? 'high' : d.confidence >= 50 ? 'med' : 'low';
+                return `
+                <div class="ai-card" style="margin-bottom: 12px;">
+                    <div class="ai-card-title" style="background: #fffbeb; color: #92400e;">
+                        🔁 ${this.escapeHtml(d.testName)}
+                        <span style="float:right; font-size:12px; font-weight:400; color:#64748b;">
+                            ${this.escapeHtml(d.prevStatus)} → ${this.escapeHtml(d.currStatus)}
+                        </span>
+                    </div>
+                    <div style="padding: 14px;">
+                        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px;">
+                            <span class="verdict-badge" style="background:${color};">Pattern: ${this.escapeHtml(d.pattern)}</span>
+                            <span class="verdict-badge confidence-${confClass}">Confidence: ${d.confidence}%</span>
+                        </div>
+                        <div style="margin-bottom:10px; color:#1e293b;"><strong>Analysis:</strong> ${this.escapeHtml(d.explanation)}</div>
+                        <div style="color:#334155;"><strong>🔧 Remediation:</strong> ${this.escapeHtml(d.remediation)}</div>
+                    </div>
+                </div>`;
+            }).join('');
+        } else if (r.flaky.length > 0) {
+            flakyList = r.flaky.map((t) => `<div class="flaky-item">🔁 ${this.escapeHtml(t)}</div>`).join('');
+        } else {
+            flakyList = `<div class="ai-empty">No flaky tests — statuses were consistent across both builds.</div>`;
+        }
+
         const summary = r.summary
             ? `<div class="flaky-summary"><strong>🤖 AI summary:</strong> ${this.escapeHtml(r.summary)}</div>`
             : '';
@@ -1045,7 +1080,7 @@ class CustomTTAReporter implements Reporter {
         </div>`;
     }
 
-    // AI Verdict tab body: one RCA card per failed test.
+    // AI Verdict tab body: one RCA card per failed test, with category and confidence.
     private generateAiVerdictTab(): string {
         if (this.aiVerdicts.length === 0) {
             return `<div class="ai-empty">⚖️ No AI verdicts — no failures analyzed in this run.</div>`;
@@ -1053,9 +1088,28 @@ class CustomTTAReporter implements Reporter {
         return `<div class="ai-data-list">${this.aiVerdicts.map((v) => this.renderVerdictCard(v)).join('')}</div>`;
     }
 
-    // Render a single RCA verdict: severity, priority, root cause, fix bullets.
+    // Render a single RCA verdict: severity, priority, category, confidence, root cause, impact, fix bullets.
     private renderVerdictCard(v: { test: string; file: string; verdict: RcaVerdict }): string {
         const sevClass = `sev-${v.verdict.severity.toLowerCase()}`;
+        const catColors: Record<string, string> = {
+            'selector-not-found': '#dc2626',
+            'assertion-mismatch': '#f59e0b',
+            'timeout': '#f97316',
+            'navigation-error': '#7c3aed',
+            'network-error': '#6366f1',
+            'authentication-failure': '#ef4444',
+            'data-integrity': '#ec4899',
+            'race-condition': '#f97316',
+            'environment-config': '#14b8a6',
+            'unknown': '#94a3b8',
+        };
+        const category = (v.verdict as RcaVerdict & { category?: FailureCategory }).category || 'unknown';
+        const catColor = catColors[category] || '#94a3b8';
+        const confidence = (v.verdict as RcaVerdict & { confidence?: number }).confidence;
+        const impact = (v.verdict as RcaVerdict & { impact?: string }).impact;
+        const confBadge = confidence !== undefined
+            ? `<span class="verdict-badge" style="background:${confidence >= 75 ? '#22c55e' : confidence >= 50 ? '#f59e0b' : '#ef4444'};">Confidence: ${confidence}%</span>`
+            : '';
         const fixes = v.verdict.fixes.length
             ? v.verdict.fixes.map((f) => `<li>${this.escapeHtml(f)}</li>`).join('')
             : '<li>No fix suggestions returned.</li>';
@@ -1066,9 +1120,12 @@ class CustomTTAReporter implements Reporter {
                 <div class="verdict-badges">
                     <span class="verdict-badge ${sevClass}">Severity: ${this.escapeHtml(v.verdict.severity)}</span>
                     <span class="verdict-badge prio">Priority: ${this.escapeHtml(v.verdict.priority)}</span>
+                    <span class="verdict-badge" style="background:${catColor};">Category: ${this.escapeHtml(category)}</span>
+                    ${confBadge}
                 </div>
-                <div class="verdict-root"><strong>Root cause:</strong> ${this.escapeHtml(v.verdict.rootCause)}</div>
-                <div class="verdict-fixes"><strong>How to fix:</strong><ul>${fixes}</ul></div>
+                ${impact ? `<div class="verdict-root" style="margin-bottom:8px;"><strong>📊 Impact:</strong> ${this.escapeHtml(impact)}</div>` : ''}
+                <div class="verdict-root"><strong>🔍 Root cause:</strong> ${this.escapeHtml(v.verdict.rootCause)}</div>
+                <div class="verdict-fixes"><strong>🔧 How to fix:</strong><ul>${fixes}</ul></div>
             </div>
         </div>`;
     }
@@ -1400,6 +1457,9 @@ class CustomTTAReporter implements Reporter {
         .verdict-badge.sev-high { background: #ef4444; }
         .verdict-badge.sev-medium { background: #f59e0b; }
         .verdict-badge.sev-low { background: #22c55e; }
+        .verdict-badge.confidence-high { background: #22c55e; }
+        .verdict-badge.confidence-med { background: #f59e0b; }
+        .verdict-badge.confidence-low { background: #ef4444; }
         .verdict-root { margin-bottom: 12px; color: #1e293b; }
         .verdict-fixes ul { margin: 6px 0 0 18px; }
         .verdict-fixes li { margin: 4px 0; color: #334155; }
