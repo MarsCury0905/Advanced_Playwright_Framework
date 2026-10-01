@@ -10,7 +10,11 @@
     "test:debug": "playwright test --debug",
     "test:report": "playwright show-report",
     "test:chromium": "playwright test --project=chromium",
-    "codegen": "playwright codegen"
+    "codegen": "playwright codegen",
+    "lint": "node --require ./eslint-ts6-shim.cjs node_modules/.bin/eslint .",
+    "lint:fix": "node --require ./eslint-ts6-shim.cjs node_modules/.bin/eslint . --fix",
+    "typecheck": "tsc --noEmit",
+    "lint:all": "npm run typecheck && npm run lint"
   },
   "keywords": [],
   "author": "",
@@ -18,17 +22,34 @@
   "type": "commonjs",
   "devDependencies": {
     "@dietrichgebert/ponytail": "^4.10.0",
+    "@eslint/js": "^10.0.1",
     "@faker-js/faker": "^10.6.0",
     "@playwright/test": "^1.63.0",
     "@types/node": "^26.5.1",
+    "@typescript-eslint/parser": "^8.71.0",
     "ajv": "^8.20.0",
     "ajv-formats": "^3.0.1",
     "allure-playwright": "^3.12.1",
     "csv-parse": "^7.0.2",
     "dotenv": "^17.4.2",
+    "eslint": "^10.11.0",
+    "globals": "^17.13.0",
     "jsonpath-plus": "^10.4.0",
     "typescript": "^7.0.2",
+    "typescript-6": "npm:typescript@6.0.x",
+    "typescript-eslint": "^8.71.0",
     "winston": "^3.19.0",
     "xlsx": "^0.18.5"
+  },
+  "overrides": {
+    "@typescript-eslint/parser": {
+      "typescript": "$typescript-6"
+    },
+    "@typescript-eslint/eslint-plugin": {
+      "typescript": "$typescript-6"
+    },
+    "typescript-eslint": {
+      "typescript": "$typescript-6"
+    }
   }
 }
