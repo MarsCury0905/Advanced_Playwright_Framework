@@ -24,6 +24,8 @@ A production-grade, enterprise-ready **Playwright + TypeScript** test automation
 | **Faker Data Factory** | Centralized test data generation via `@faker-js/faker` with deterministic offset capabilities |
 | **Winston Logging** | Scoped, colorized console + file logging (`logs/combined.log`) with adjustable levels |
 | **CI/CD Ready** | GitHub Actions pipeline executing tests and publishing artifacts on push and PR |
+| **ESLint Integration** | TypeScript-aware static analysis with flat config, TS 7.0-compatible via side-by-side TS 6 shim |
+| **AI Quality Gates** | 4 mandatory gates (AI-Slop, Duplication, Over-Engineering, Framework Patterns) enforced on all AI coding agents |
 
 ---
 
@@ -31,7 +33,21 @@ A production-grade, enterprise-ready **Playwright + TypeScript** test automation
 
 ```
 ├── .env.example                               # Environment variable template
+├── eslint.config.mjs                          # ESLint flat config (TypeScript-aware rules)
+├── eslint-ts6-shim.cjs                        # Module shim for TS 7.0 ↔ TS 6 linting compat
+├── AGENTS.md                                  # Root AI agent instructions (points to .agents/)
+├── .cursorrules                               # Cursor AI agent instructions
+├── .agents/
+│   ├── AGENTS.md                              # Master quality gate enforcement rules
+│   ├── rules/
+│   │   └── ponytail.md                        # Ponytail lazy-senior-dev rules
+│   └── skills/
+│       ├── ai-slop/SKILL.md                   # Gate 1: AI-Slop detector
+│       ├── ponytail-duplication/SKILL.md       # Gate 2: Duplication gate
+│       ├── over-engineering/SKILL.md           # Gate 3: Over-engineering detector
+│       └── framework-patterns/SKILL.md        # Gate 4: Framework patterns enforcer
 ├── .github/
+│   ├── copilot-instructions.md                # GitHub Copilot agent instructions
 │   └── workflows/
 │       └── playwright.yml                     # CI/CD pipeline
 ├── .vscode/
@@ -336,6 +352,110 @@ The pipeline installs dependencies, provisions Playwright browser binaries with 
 
 ---
 
+## 🔍 Linting (ESLint)
+
+The framework includes **ESLint v10** with **typescript-eslint** for static code analysis across all TypeScript source and test files.
+
+### Installation
+
+ESLint and its dependencies are included in the project's `devDependencies`. After cloning, they are installed automatically with:
+
+```bash
+npm install
+```
+
+If you need to install the linting packages manually (e.g., adding to an existing project):
+
+```bash
+npm install --save-dev eslint @eslint/js typescript-eslint globals @typescript-eslint/parser typescript-6@npm:typescript@6.0.x --legacy-peer-deps
+```
+
+> **⚠️ TypeScript 7.0 Compatibility Note:**
+> TypeScript 7.0 is a Go-based rewrite and does not expose the Node.js programmatic API that `typescript-eslint` requires. This project uses a **side-by-side TypeScript 6** installation (`typescript-6` alias) with a module resolution shim (`eslint-ts6-shim.cjs`) to redirect `require("typescript")` to TS 6 only during linting. Your project's build and runtime continue to use TypeScript 7.0.
+
+### Configuration
+
+ESLint uses the **flat config** format (`eslint.config.mjs`). Key configuration:
+
+| Setting | Value |
+|---|---|
+| Config format | ESLint flat config (v9+) |
+| Config file | `eslint.config.mjs` |
+| TypeScript parser | `@typescript-eslint/parser` |
+| Rule presets | `@eslint/js` recommended + `typescript-eslint` recommended |
+| TS 7.0 shim | `eslint-ts6-shim.cjs` (auto-loaded via npm scripts) |
+
+**Enabled rules include:**
+
+- `prefer-const` / `no-var` — enforce modern variable declarations
+- `eqeqeq` — require strict equality (`===` / `!==`)
+- `no-console` — warn on console statements (disabled in test files)
+- `@typescript-eslint/no-explicit-any` — warn on `any` usage (disabled in test files)
+- `@typescript-eslint/no-unused-vars` — warn on unused variables (ignoring `_` prefixed)
+- `no-duplicate-imports` — prevent duplicate import statements
+- `curly` — require curly braces for multi-line blocks
+
+**Ignored paths:** `node_modules/`, `dist/`, `playwright-report/`, `test-results/`, `tta-report/`, `reports/`, `logs/`
+
+### Usage
+
+```bash
+# Run ESLint across the entire project
+npm run lint
+
+# Run ESLint and auto-fix fixable issues
+npm run lint:fix
+
+# Run TypeScript type checking (tsc --noEmit)
+npm run typecheck
+
+# Run both typecheck + ESLint in sequence
+npm run lint:all
+```
+
+---
+
+## 🚦 AI Quality Gates
+
+This framework enforces **4 mandatory quality gates** on all AI-generated code contributions. These gates ensure that code produced by **GitHub Copilot, Claude, Gemini, Codex, Cursor, Windsurf, Devin, Kiro, CommandCode, OpenCode, Aider, Continue, Cody, Tabnine, Amazon Q**, or any other AI coding agent meets the project's quality standards.
+
+### The 4 Gates
+
+| # | Gate | Question It Answers | Skill Location |
+|---|------|---------------------|----------------|
+| 1 | **🚨 AI-Slop** | Was this generated, skimmed, and shipped? | `.agents/skills/ai-slop/SKILL.md` |
+| 2 | **♻️ Ponytail** | Does anything else in the repo already do this? | `.agents/skills/ponytail-duplication/SKILL.md` |
+| 3 | **🏗️ Over-Engineering** | How many callers does this abstraction have? | `.agents/skills/over-engineering/SKILL.md` |
+| 4 | **🎭 Framework Patterns** | Is this still part of this framework? | `.agents/skills/framework-patterns/SKILL.md` |
+
+### How It Works
+
+1. AI agents auto-discover rules via `AGENTS.md` (root), `.agents/AGENTS.md`, `.cursorrules`, or `.github/copilot-instructions.md`.
+2. Before proposing any code change, the agent must evaluate the diff against all 4 gates **in order**.
+3. Each gate produces a verdict: **✅ PASS**, **⚠️ REVIEW** (with justification), or **🚨 FAIL** (hard block).
+4. A 🚨 verdict at any gate means the code must be fixed before it can land.
+
+### Gate Details
+
+**Gate 1 — AI-Slop:** Detects zombie comments, hallucinated APIs, copy-paste artifacts, confidence-theater assertions (`expect(true).toBe(true)`), and dead flexibility (generics with only one instantiation).
+
+**Gate 2 — Ponytail Duplication:** Contains a full lookup table of 20+ existing utilities in this framework. Catches re-invention of `ApiHelper`, `EnvUtil`, `createLogger`, `DataGenerator`, and similar. Also flags unnecessary npm dependencies when Node.js built-ins suffice.
+
+**Gate 3 — Over-Engineering:** Applies the caller-count test: 0 callers = dead code, 1 caller = inline it, 2 = justify it, 3+ = keep it. Includes a whitelist of 10 justified abstractions specific to this framework (e.g., `BasePage`, `createAgent`, `UtilElementLocator`).
+
+**Gate 4 — Framework Patterns:** Validates 11 canonical patterns: Page Object Model (extend `BasePage`), fixture injection (not `new PageObject(page)`), Winston logging, `EnvUtil` for config, API test tiers, path aliases, agent factory, file naming, and more.
+
+### Enforcement Files
+
+| File | AI Tool Coverage |
+|------|------------------|
+| `AGENTS.md` | Gemini, Claude, generic agents |
+| `.agents/AGENTS.md` | Antigravity, `.agents/` convention tools |
+| `.github/copilot-instructions.md` | GitHub Copilot |
+| `.cursorrules` | Cursor AI |
+
+---
+
 ## 🛠️ Tech Stack
 
 | Technology | Purpose |
@@ -349,6 +469,7 @@ The pipeline installs dependencies, provisions Playwright browser binaries with 
 | [dotenv](https://github.com/motdotla/dotenv) | Environment variable management |
 | [Allure Playwright](https://docs.qameta.io/allure/) | Enterprise test reporting support |
 | [xlsx](https://sheetjs.com) & [csv-parse](https://csv.js.org/parse/) | Data-driven test file parsing |
+| [ESLint](https://eslint.org) + [typescript-eslint](https://typescript-eslint.io) | TypeScript-aware static analysis and code quality |
 
 ---
 

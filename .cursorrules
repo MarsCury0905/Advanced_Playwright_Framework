@@ -1,0 +1,17 @@
+This repository enforces 4 mandatory quality gates on all AI-generated code.
+
+Before writing any code, read these files:
+1. .agents/AGENTS.md — Full rules and PR checklist
+2. .agents/skills/ai-slop/SKILL.md — Gate 1: AI Slop detection
+3. .agents/skills/ponytail-duplication/SKILL.md — Gate 2: Duplication check
+4. .agents/skills/over-engineering/SKILL.md — Gate 3: Abstraction justification
+5. .agents/skills/framework-patterns/SKILL.md — Gate 4: Framework consistency
+
+Key patterns:
+- Page Objects extend BasePage, use this.el for interactions
+- UI tests use fixtures from @fixtures/test-base, never new PageObject(page)
+- Logging: createLogger(scope) from @utils/Logger, never console.log
+- Environment: EnvUtil.get() or envOr(), never bare process.env
+- Path aliases (@pages/*, @utils/*, etc.) mandatory for cross-dir imports
+- AI agents use createAgent() from src/ai/agentFactory.ts
+- Check existing utilities before writing new ones (see Gate 2)
