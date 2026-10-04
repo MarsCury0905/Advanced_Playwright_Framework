@@ -11,6 +11,7 @@ A production-grade, enterprise-ready **Playwright + TypeScript** test automation
 | Feature | Description |
 |---|---|
 | **Page Object Model** | Modular, encapsulated page objects extending abstract `BasePage` with `UtilElementLocator` |
+| **BDD Cucumber** | Behavior-Driven Development integration with Cucumber.js for human-readable data-driven test scenarios |
 | **Custom Test Fixtures** | Dependency-injected page objects (`@fixtures/test-base`) and API clients (`@fixtures/booker.fixture`) |
 | **API Testing Suite** | Multi-tier API architecture (Raw Playwright requests, reusable `ApiHelper`, and type-safe `BookingApi` client) |
 | **Auth & Token Recovery** | Managed token lifecycle that automatically handles re-authentication and retries on expired sessions |
@@ -170,6 +171,9 @@ npm run codegen
 
 # View the default Playwright HTML report
 npm run test:report
+
+# Run Cucumber BDD data-driven scenarios (Level 2)
+npm run cucumber:level2
 ```
 
 ### Running Specific Projects & Suites

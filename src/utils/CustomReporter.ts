@@ -957,9 +957,9 @@ class CustomTTAReporter implements Reporter {
             <div class="filter-group">
                 <strong>📊 Status:</strong>
                 <label><input type="checkbox" class="status-filter" value="all" checked onchange="filterByStatus(this)"><span>All</span></label>
-                <label><input type="checkbox" class="status-filter" value="passed" onchange="filterByStatus(this)"><span>✅ Passed</span></label>
-                <label><input type="checkbox" class="status-filter" value="failed" onchange="filterByStatus(this)"><span>❌ Failed</span></label>
-                <label><input type="checkbox" class="status-filter" value="skipped" onchange="filterByStatus(this)"><span>⏭️ Skipped</span></label>
+                <label><input type="checkbox" class="status-filter" value="passed" checked onchange="filterByStatus(this)"><span>✅ Passed</span></label>
+                <label><input type="checkbox" class="status-filter" value="failed" checked onchange="filterByStatus(this)"><span>❌ Failed</span></label>
+                <label><input type="checkbox" class="status-filter" value="skipped" checked onchange="filterByStatus(this)"><span>⏭️ Skipped</span></label>
             </div>
         </div>`;
     }

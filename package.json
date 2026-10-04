@@ -9,14 +9,20 @@
     "test:headed": "playwright test --headed",
     "test:debug": "playwright test --debug",
     "test:report": "playwright show-report",
-    "test:chromium": "playwright test --project=chromium",
-    "codegen": "playwright codegen"
+    "test:bdd": "cucumber-js",
+    "test:bdd:smoke": "cucumber-js --tags @smoke",
+    "test:bdd:report": "open reports/cucumber/report.html",
+    "cucumber:level0": "cucumber-js --tags @level0",
+    "cucumber:level1": "cucumber-js --tags @level1",
+    "cucumber:level2": "HEADED=1 cucumber-js --tags @level2",
+    "cucumber:headed": "HEADED=1 cucumber-js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "devDependencies": {
+    "@cucumber/cucumber": "^13.2.1",
     "@dietrichgebert/ponytail": "^4.10.0",
     "@faker-js/faker": "^10.6.0",
     "@playwright/test": "^1.63.0",
@@ -27,6 +33,8 @@
     "csv-parse": "^7.0.2",
     "dotenv": "^17.4.2",
     "jsonpath-plus": "^10.4.0",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "winston": "^3.19.0",
     "xlsx": "^0.18.5"
